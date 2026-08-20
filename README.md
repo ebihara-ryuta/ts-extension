@@ -211,8 +211,8 @@ TeamSpiritを「アプリとして開く」設定にしている場合でも、�
 
 ```
 ts-extension/
-├── manifest.json      # 拡張機能の設定
-├── background.js      # 拡張機能ウィンドウを開くための最小限のservice worker
-├── sidepanel.html      # 拡張機能ウィンドウのUI(ファイル名は旧仕様のまま)
-└── sidepanel.js         # Vault読み込み・パース・マッチング・TeamSpirit操作の本体
+├── manifest.json    # 拡張機能の設定
+├── background.js    # 拡張機能ウィンドウを開くための最小限のservice worker
+├── sidepanel.html   # 拡張機能ウィンドウのUI(ファイル名は旧仕様のまま)
+└── sidepanel.js     # Vault読み込み・パース・マッチング・TeamSpirit操作の本体
 ```
