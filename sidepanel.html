@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>工数入力アシスタント</title>
+<style>
+  :root {
+    --fg: #222;
+    --bg: #fafafa;
+    --accent: #2f6fed;
+    --border: #d8d8d8;
+    --warn: #b34700;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    margin: 0;
+    padding: 12px;
+    background: var(--bg);
+    color: var(--fg);
+    font-size: 13px;
+  }
+  h1 { font-size: 15px; margin: 0 0 10px; }
+  section {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  section h2 {
+    font-size: 12px;
+    margin: 0 0 8px;
+    color: #555;
+    font-weight: 600;
+  }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: #eee;
+    color: #333;
+    border: 1px solid var(--border);
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  input[type="date"] {
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .status { font-size: 11px; color: #666; margin-top: 4px; white-space: pre-wrap; }
+  .warn { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th, td { border: 1px solid var(--border); padding: 4px; text-align: left; vertical-align: top; }
+  th { background: #f0f0f0; }
+  textarea.raw {
+    width: 100%; min-height: 34px; font-size: 11px; border: 1px solid transparent;
+    background: transparent; resize: vertical; padding: 2px;
+  }
+  input.hours { width: 50px; font-size: 11px; padding: 2px; }
+  select.job { width: 100%; font-size: 11px; }
+  .score-low { background: #fff3e0; }
+  .score-none { background: #ffebee; }
+  .alias-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .alias-row input.code { width: 130px; padding: 3px 5px; font-size: 11px; border: 1px solid var(--border); border-radius: 4px; }
+  .alias-row input.kw { flex: 2; padding: 3px 5px; font-size: 11px; border: 1px solid var(--border); border-radius: 4px; }
+  .alias-row .alias-name { flex: 1.4; font-size: 10.5px; color: #666; overflow: hidden; text-overflow: ellipsis; }
+  .alias-row button.del { background: #eee; color: #a33; border: 1px solid var(--border); padding: 2px 6px; }
+  .badge { display: inline-block; font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
+  .badge-alias { background: #e3f2fd; color: #1565c0; }
+  .badge-missing { background: #ffebee; color: #b71c1c; }
+  .footer-note { font-size: 10.5px; color: #777; margin-top: 6px; }
+  details.section-details {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  details.section-details summary {
+    font-size: 12px;
+    color: #555;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+  }
+  details.section-details summary::-webkit-details-marker { display: none; }
+  details.section-details summary::before {
+    content: "▶";
+    display: inline-block;
+    margin-right: 6px;
+    font-size: 9px;
+    transition: transform 0.15s;
+  }
+  details.section-details[open] summary::before {
+    transform: rotate(90deg);
+  }
+  details.section-details .details-body { margin-top: 10px; }
+</style>
+</head>
+<body>
+  <h1>Obsidian → TeamSpirit 工数入力アシスタント</h1>
+
+  <section>
+    <h2>① デイリーノートフォルダ</h2>
+    <div class="row">
+      <button id="pickVaultBtn">フォルダを選択</button>
+      <span id="vaultStatus" class="status"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2>② デイリーノート読み込み</h2>
+    <div class="row">
+      <input type="date" id="dateInput" />
+      <button id="loadNoteBtn" disabled>読み込む</button>
+    </div>
+    <div id="noteStatus" class="status"></div>
+  </section>
+
+  <section>
+    <h2>③ TeamSpiritの案件一覧を取得</h2>
+    <div class="row">
+      <button id="getJobsBtn" class="secondary">開いているTeamSpiritタブから取得</button>
+    </div>
+    <div id="jobsStatus" class="status">
+      ※ TeamSpiritで「工数実績入力」ダイアログを開いた状態で押してください。
+    </div>
+  </section>
+
+  <section>
+    <h2>④ 抽出結果の確認・修正</h2>
+    <div id="itemsContainer" class="status">まだ読み込んでいません。</div>
+  </section>
+
+  <section>
+    <h2>⑤ TeamSpiritへ反映</h2>
+    <div class="row">
+      <button id="fillBtn" disabled>選択した項目を入力欄に反映</button>
+    </div>
+    <div class="row">
+      <label style="font-size:11px;">
+        <input type="checkbox" id="transcribeReportCheck" checked>
+        「作業報告」自由入力欄にも個別の内容をそのまま転記する
+      </label>
+    </div>
+    <div id="fillStatus" class="status"></div>
+    <div class="footer-note warn">
+      ※ 同じ案件にマッチした行は時間を合算して1つの値として反映します。
+      「作業報告」欄には合算前の個別の内容をそのまま（元のノートの行単位で）書き込みます。
+      このツールは入力欄への反映のみ行い、「登録」ボタンは押しませんので、
+      必ず内容を確認してから自分でTeamSpirit側の「登録」を押してください。
+    </div>
+  </section>
+
+  <details class="section-details">
+    <summary>エイリアス設定（キーワード → ジョブコード）｜任意</summary>
+    <div class="details-body">
+      <div class="row">
+        <button id="addAliasBtn" class="secondary">＋ 行を追加</button>
+        <span id="aliasStatus" class="status"></span>
+      </div>
+      <div id="aliasContainer"></div>
+      <datalist id="jobCodeOptions"></datalist>
+      <div class="footer-note">
+        1つのジョブコードに対して、複数のキーワードをまとめて登録できます
+        （キーワードは全角読点「、」で区切ってください。カンマや改行では区切れません）。
+        例えば「開発部会議・1on1」というコードに対して
+        「PMデイリー、開発デイリー、月次定例」のように複数のキーワードを
+        登録しておけば、ノートでどの表記を使っても同じ案件に紐付きます。
+        ジョブコードは③で案件一覧を取得すると入力補完（オートコンプリート）が使えます。
+      </div>
+    </div>
+  </details>
+
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

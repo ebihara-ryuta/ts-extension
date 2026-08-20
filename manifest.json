@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Obsidian→TeamSpirit 工数入力アシスタント",
+  "version": "0.1.0",
+  "description": "Obsidianのデイリーノートを読み込み、TeamSpiritの工数実績入力ダイアログに反映するお手伝いをします（自動登録はしません。最終確認・登録は必ず自分で行ってください）。",
+  "permissions": ["scripting", "storage", "tabs"],
+  "host_permissions": [
+    "https://*.teamspirit.com/*",
+    "https://*.force.com/*",
+    "https://*.salesforce.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "工数入力アシスタントを開く"
+  }
+}
