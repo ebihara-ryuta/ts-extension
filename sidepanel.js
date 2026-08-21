@@ -74,7 +74,7 @@ async function findAndReadNote(dirHandle, filename, depth = 0) {
   } catch (e) {
     // 見つからなければサブフォルダを探索
   }
-  for await (const [name, entry] of dirHandle.entries()) {
+  for await (const entry of dirHandle.values()) {
     if (entry.kind === "directory") {
       const result = await findAndReadNote(entry, filename, depth + 1);
       if (result !== null) return result;
@@ -718,16 +718,14 @@ function renderItems() {
       state.items[+e.target.dataset.i].hours = Math.round((minutes / 60) * 100) / 100;
     })
   );
-  container.querySelectorAll("select.job").forEach((s) =>
+  container.querySelectorAll("select.job").forEach((s) => {
+    // 初期値をセットしてから、変更を拾うリスナーを登録する
+    const item = state.items[+s.dataset.i];
+    item.selectedJobIndex = item.matchedJob ? item.matchedJob.index : null;
     s.addEventListener("change", (e) => {
       const idx = parseInt(e.target.value, 10);
       state.items[+e.target.dataset.i].selectedJobIndex = idx >= 0 ? idx : null;
-    })
-  );
-  container.querySelectorAll("select.job").forEach((s) => {
-    const i = +s.dataset.i;
-    const item = state.items[i];
-    item.selectedJobIndex = item.matchedJob ? item.matchedJob.index : null;
+    });
   });
 
   el("checkAll").addEventListener("change", (e) => {
