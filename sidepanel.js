@@ -85,20 +85,11 @@ async function findAndReadNote(dirHandle, filename, depth = 0) {
 
 /* ---------- デイリーノートのパーサー(固定フォーマット) ---------- */
 //
-// 対応フォーマット:
-//
-//   ## 工数            (見出しレベルは # 〜 ###### のどれでもOK)
-//   - キーワードまたはジョブコード：H:MM        (時間を直接指定)
-//   - キーワードまたはジョブコード：残り時間すべて (％モードに切替のみ。残りの
-//                                              時間を全てそのジョブに当てはめる、値は入力しない)
-//
-// 区切り文字は全角「：」に固定。時刻表記(H:MM)側は半角「:」を使うため、
-// 項目と値の区切り(全角：)と時刻の区切り(半角:)を明確に分けて混同を避けている。
-//
-// 「工数」という見出し(#の数はいくつでもよい)の直後から、次の見出し行が
-// 現れるまでを工数セクションとして扱う。セクション内で
-// "- テキスト：H:MM" または "- テキスト：残り時間すべて" の形の行だけを
-// 厳密に読み取る。それ以外の書式(自然文・時間表記の揺れなど)は対象外。
+// 「工数」見出し(# 〜 ######)の直後から次の見出しまでを工数セクションとし、
+// その中の以下2形式の行だけを厳密に読む(他の書式は無視):
+//   - テキスト：H:MM         直接時間を指定
+//   - テキスト：残り時間すべて  ％モードに切替のみ(残り時間を全てそのジョブに当てる)
+// 区切りは 項目=全角「：」/ 時刻=半角「:」 に固定し混同を防ぐ。
 
 const SECTION_HEADER_RE = /^#{1,6}\s*工数\s*$/;
 const ANY_HEADER_RE = /^#{1,6}\s/;
@@ -225,10 +216,8 @@ function scrapeJobsInPage() {
   return jobs;
 }
 
-// ページ内で実行する関数: 指定した行に時間を入力する
-// entries: [{ index, hoursDecimal }]
-// TeamSpirit側がテーブルを裏で再描画するタイミングと重なると、要素が
-// 一瞬見つからないことがあるため、見つからない場合は複数回リトライする。
+// ページ内で実行: 指定行(entries: [{index, hoursDecimal}])に時間を入力する。
+// テーブル再描画と重なると要素が一瞬消えるため、無ければ数回リトライ。
 async function fillEntriesInPage(entries) {
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const MAX_ATTEMPTS = 2;
@@ -272,13 +261,10 @@ async function fillEntriesInPage(entries) {
   return results;
 }
 
-// ページ内で実行する関数: 指定した行を「％(パーセント)モード」に切り替え、
-// スライダーを1目盛り動かす(TeamSpiritの「残りの時間を全て当てはめる」動きを
-// 起こすための操作)。dijitウィジェットのAPI(registry.byId().set('value', ...))を
-// 直接呼ぶ、1パターンのみの実装。
-// TeamSpirit側がテーブルを裏で再描画するタイミングと重なると、要素が
-// 一瞬見つからないことがあるため、見つからない場合は複数回リトライする。
-// indexes: [rowIndex, ...]
+// ページ内で実行: 指定行を「％モード」に切替し、dijitのAPI
+// (registry.byId().set('value', +1))でスライダーを1目盛り動かす
+// (TeamSpiritの「残り時間を全て当てはめる」動きを起こす)。
+// 再描画に備え要素が無ければ数回リトライ。indexes: [rowIndex, ...]
 async function setPercentModeInPage(indexes) {
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const MAX_ATTEMPTS = 2;
